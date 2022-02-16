@@ -1,0 +1,157 @@
+<!doctype html> 
+<html lang="en"> 
+<head> 
+    <meta charset="UTF-8" />
+    <title>El gatito</title>
+    <script src="//cdn.jsdelivr.net/npm/phaser@3.11.0/dist/phaser.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+<img id="cat" src="/assets/gatito.gif" style="position: absolute; text-align: center; margin: -5px 0px 0px -5px;"/>
+
+<script rel="text/javascript">
+    $(document).mousemove(function(e) {
+        $("#cat").css({
+            left: e.pageX,
+            top: 564
+        });
+    });
+</script>
+
+<script type="text/javascript">
+
+var config = {
+    type: Phaser.AUTO,
+    width: 1366,
+    height: 649,
+    physics: {
+        default: 'arcade',
+        arcade: {
+            gravity: { y: 100 },
+            debug: false
+        }
+    },
+    scene: {
+        preload: preload,
+        create: create,
+        update: update
+    }
+};
+
+var mouseX;
+var stars;
+var bombs;
+var platforms;
+var cursors;
+var score = 0;
+var gameOver = false;
+var scoreText;
+
+var gatito = document.getElementById("cat")
+
+var game = new Phaser.Game(config);
+
+function preload ()
+{
+    this.load.image('sky', 'assets/sky.png');
+    this.load.image('ground', 'assets/platform.png');
+    this.load.image('star', 'assets/star.png');
+    this.load.image('bomb', 'assets/bomb.png');
+    this.load.image('gatito', 'assets/gatitoHitbox.png');
+}
+
+function create ()
+{
+    this.add.image(683, 300, 'sky');
+
+    platforms = this.physics.add.staticGroup();
+
+    platforms.create(683, 617, 'ground').refreshBody();
+
+    mouseX = this.physics.add.sprite(400, 576, 'gatito');
+
+    this.input.on('pointermove', function (pointer) {
+        mouseX.x = pointer.x+15;
+        mouseX.y = 576;
+        mouseX.setVelocity(0);
+        mouseX.setBounceY(0);
+
+    });
+
+    stars = this.physics.add.group({
+        key: 'star',
+        repeat: 4,
+        setXY: { x: 323, y: 0, stepX: 180 }
+    });
+
+    stars.children.iterate(function (child) {
+        child.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
+    });
+    
+    bombs = this.physics.add.group();
+
+    scoreText = this.add.text(5, 615, 'Puntos: 0', { fontSize: '30px', fill: '#fff' });
+    anuncio = this.add.text(510,5, 'MANTEN EL MOUSE DENTRO DE LA PANTALLA!', { fontSize: '15px', fill: '#fff'});
+
+    this.physics.add.collider(mouseX, platforms);
+    this.physics.add.collider(stars, platforms);
+    this.physics.add.collider(bombs, platforms);
+
+    this.physics.add.overlap(mouseX, stars, collectStar, null, this);
+    this.physics.add.collider(mouseX, bombs, hitBomb, null, this);
+}
+
+function update ()
+{
+    if (gameOver)
+    {
+        return;
+    }
+}
+
+function collectStar (gatito, star)
+{
+    star.disableBody(true, true);
+
+    score += 10;
+    scoreText.setText('Puntos: ' + score);
+
+    if (stars.countActive(true) === 0)
+    {
+        stars.children.iterate(function (child) {
+            child.enableBody(true, child.x, 0, true, true);
+        });
+
+        var x = (gatito.x < 683) ? Phaser.Math.Between(683, 1366) : Phaser.Math.Between(0, 683);
+
+        var bomb = bombs.create(x, 16, 'bomb');
+        bomb.setBounce(1);
+        bomb.setCollideWorldBounds(true);
+        bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
+        bomb.allowGravity = false;
+
+    }
+}
+
+function hitBomb (gatito, bomb)
+{
+    this.physics.pause();
+
+    anuncio = this.add.text(570,60, 'PERDISTE!', { fontSize: '45px', fill: '#fff'});
+
+    $("#cat").css({
+        height: 0
+    });
+
+    gameOver = true;
+}
+
+</script>
+
+</body>
+</html>
